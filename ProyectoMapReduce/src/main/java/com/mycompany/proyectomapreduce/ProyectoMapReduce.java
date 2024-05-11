@@ -1,96 +1,132 @@
 /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  */
-
 package com.mycompany.proyectomapreduce;
 
 /**
  *
  * @author iniet
  */
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.security.PrivilegedExceptionAction;
 import javax.ws.rs.core.Context;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.hadoop.mapreduce.Reducer;
-
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.security.UserGroupInformation;
 
 /**
  *
  * @author alumno
  */
 public class ProyectoMapReduce {
-    
-    
-    private static class MediaPresupuesto extends Reducer<Text, Text, Text, IntWritable>{
 
-        private int media = 0;
+    public static class MapperClassPelicula extends Mapper<LongWritable, Text, Text, Text> {
+
+        @Override
+        public void map(LongWritable key, Text value, Mapper.Context context) {
+            try {
+                String[] str = value.toString().split(",", -1);
+                if (str.length > 15) {
+                    String diaSemana = str[15];
+                    if (("Monday".equals(diaSemana) || "Wednesday".equals(diaSemana) || "Tuesday".equals(diaSemana)) || "Thursday".equals(diaSemana) || "Friday".equals(diaSemana) && !("day_of_week".equals(diaSemana))) {
+                        context.write(new Text(diaSemana), new Text(value));
+                    }
+                }
+            } catch (IOException ex) {
+                System.err.println(ex);
+                ex.printStackTrace(System.err);
+            } catch (InterruptedException ex) {
+                System.err.println(ex);
+                ex.printStackTrace(System.err);
+
+            } catch (Exception e) {
+                System.err.println("Mensaje:" + e.getMessage());
+
+            }
+        }
+    }
+
+    private static class ReducerClassPelicula extends Reducer<Text, Text, Text, LongWritable> {
+
+        private long media = 0;
 
         @Override
         protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-            try{
-                media = 0;
-                int filas=0;
-                for(Text valor : values){
-                    String[] str = valor.toString().split("\t", -1);
-                    if(!("budget".equals(str[2]))){
-                        media +=Integer.parseInt(str[2]);
-                        filas+=1;
-                    }
+            long suma = 0;
+            int filas = 0;
+            for (Text valor : values) {
+                String[] str = valor.toString().split(",", -1);
+
+                try {
+                    suma += Long.parseLong(str[2]);
+                    filas += 1;
+                } catch (NumberFormatException e) {
+                    // Log to error file or handle exception
                 }
-                media=media/filas;
-                context.write(key, new IntWritable(media));
-            }catch(IOException | InterruptedException  e){
-                System.err.println("Capturada Excepcion: " + e);
-                System.err.println("Mensaje: " + e.getMessage());
-                e.printStackTrace();                    
+
+            }
+            if (filas > 0) {
+                media = suma / filas;
+                context.write(key, new LongWritable(media));
             }
         }
-        
-        
+
     }
-    
-    private static class PartitionerClassPelicula extends Partitioner<Text,Text> {
+
+    private static class PartitionerClassPelicula extends Partitioner<Text, Text> { //PorHacer: Tenemos que elegir otro campo por el cual particionar distinto de dia de la semana
 
         @Override
-        public int getPartition(Text key, Text value, int i) { //Sacamos la edad del parametro value
-            String[] str = value.toString().split("\t",-1);
-            String diaSemana =(str[16]);
-            if(("Monday".equals(diaSemana) || "Wednesday".equals(diaSemana) || "Tuesday".equals(diaSemana)) && !("day_of_week".equals(diaSemana))){
-                return 0;
+        public int getPartition(Text key, Text value, int i) { 
+
+            String[] str = value.toString().split(",", -1);
+            if (str.length > 15) {
+                String diaSemana = str[15];
+                if (("Monday".equals(diaSemana) || "Wednesday".equals(diaSemana) || "Tuesday".equals(diaSemana)) && !("day_of_week".equals(diaSemana))) {
+                    return 0;
+                } else if ("Thursday".equals(diaSemana) || "Friday".equals(diaSemana)) {
+                    return 1;
+                } else {
+                    return 2;
+                }
+            } else {
+                return 3; //La fila tiene menos campos de los esperados
             }
-            else if("Thursday".equals(diaSemana) || "Friday".equals(diaSemana)){
-                return 1;
-            }else{
-                return 2;
-            }
+
         }
-        
+
     }
-    
+
     public static void writeFileToHDFS(String localFileName, String hdfsFilePath) throws IOException, Exception {
- //Setting up the details of the configuration
+        //Setting up the details of the configuration
         Configuration configuration = new Configuration();
-        FileSystem fileSystem = FileSystem.get(new URI("hdfs://192.168.10.1:9000"), configuration, "a_83047");
+        FileSystem fileSystem = FileSystem.get(new URI("hdfs://192.168.10.1:9000"), configuration, "a_83048");
         //Create a path
         Path hdfsWritePath = new Path(hdfsFilePath + localFileName);
         FSDataOutputStream fsDataOutputStream = fileSystem.create(hdfsWritePath, true);
-        BufferedReader br = new BufferedReader( new FileReader(hdfsFilePath + localFileName));
-        BufferedWriter bufferedWriter = new BufferedWriter( new OutputStreamWriter(fsDataOutputStream,StandardCharsets.UTF_8));
+        BufferedReader br = new BufferedReader(new FileReader(hdfsFilePath + localFileName));
+        BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(fsDataOutputStream, StandardCharsets.UTF_8));
         String linea;
-        while ((linea = br.readLine())!=null){
+        while ((linea = br.readLine()) != null) {
             bufferedWriter.write(linea);
             bufferedWriter.newLine();
         }
@@ -99,8 +135,68 @@ public class ProyectoMapReduce {
         fileSystem.close();
     }
 
+    public static void readFileFromHDFS(String route, String fileName) throws IOException {
+        Configuration configuration = new Configuration();
+        FileSystem fileSystem = null;
+        try {
+            try {
+                fileSystem = FileSystem.get(new URI("hdfs://192.168.10.1:9000"), configuration, "a_83048");
+            } catch (InterruptedException ex) {
+                System.err.println(ex);
+                ex.printStackTrace(System.err);
+            }
+        } catch (URISyntaxException ex) {
+            System.err.println(ex);
+            ex.printStackTrace(System.err);
+        }
 
-   public static void main(String[] args) {
-   }
+        FSDataInputStream fsDataInputStream = fileSystem.open(new Path(route + fileName));
+        BufferedReader br = new BufferedReader(new InputStreamReader(fsDataInputStream));
+        String linea;
+        int contador = 1;
+        while ((linea = br.readLine()) != null) {
+            System.out.println("Linea " + contador + ": " + linea);
+            contador++;
+        }
+        br.close();
+        fileSystem.close();
+    }
+
+    public static void main(String[] args) {
+        try {
+            UserGroupInformation ugi
+                    = UserGroupInformation.createRemoteUser("a_83048");
+            ugi.doAs(new PrivilegedExceptionAction<Void>() {
+                @Override
+                public Void run() throws Exception {
+                    Configuration conf = new Configuration();
+                    conf.set("fs.defaultFS", "hdfs://192.168.10.1:9000");
+                    Job job = Job.getInstance(conf, "Peliculas");
+                    job.setJarByClass(ProyectoMapReduce.class);
+                    job.setMapperClass(MapperClassPelicula.class);
+                    job.setReducerClass(ReducerClassPelicula.class);
+                    //job.setPartitionerClass(PartitionerClassPelicula.class);
+                    //job.setNumReduceTasks(3);
+                    job.setOutputKeyClass(Text.class);
+                    job.setOutputValueClass(Text.class);
+
+                    FileInputFormat.addInputPath(job,
+                            new Path("/PCD2024/a_83048/movies/"));
+                    FileOutputFormat.setOutputPath(job,
+                            new Path("/PCD2024/a_83048/movies_particionadoHadoop/"));
+
+                    boolean finalizado = job.waitForCompletion(true);
+                    System.out.println("Finalizado: " + finalizado);
+                    readFileFromHDFS("/PCD2024/a_83048/movies_particionadoHadoop/", "part-r-00000");
+                    //readFileFromHDFS("/PCD2024/a_83048/movies_particionadoHadoop/", "part-r-00001");
+                    //readFileFromHDFS("/PCD2024/a_83048/movies_particionadoHadoop/", "part-r-00002");
+                    return null;
+                }
+            });
+        } catch (Exception ex) {
+            System.err.println(ex);
+            ex.printStackTrace(System.err);
+        }
+
+    }
 }
-
