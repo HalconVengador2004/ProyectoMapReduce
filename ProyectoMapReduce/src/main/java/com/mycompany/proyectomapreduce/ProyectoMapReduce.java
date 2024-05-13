@@ -52,16 +52,9 @@ public class ProyectoMapReduce {
                         context.write(new Text(diaSemana), new Text(value));
                     }
                 }
-            } catch (IOException ex) {
+            } catch (IOException | InterruptedException ex) {
                 System.err.println(ex);
                 ex.printStackTrace(System.err);
-            } catch (InterruptedException ex) {
-                System.err.println(ex);
-                ex.printStackTrace(System.err);
-
-            } catch (Exception e) {
-                System.err.println("Mensaje:" + e.getMessage());
-
             }
         }
     }
@@ -81,6 +74,9 @@ public class ProyectoMapReduce {
                     suma += Long.parseLong(str[2]);
                     filas += 1;
                 } catch (NumberFormatException e) {
+                    System.err.println("Capturada NumberFortmatException " + e);
+                    System.err.println("Mensaje: " + e.getMessage());
+                    e.printStackTrace(System.err);
                     // Log to error file or handle exception
                 }
 
@@ -88,7 +84,7 @@ public class ProyectoMapReduce {
             if (filas > 0) {
                 media = suma / filas;
                 context.write(key, new LongWritable(media));
-            }
+            }           
         }
 
     }
