@@ -17,6 +17,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivilegedExceptionAction;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.ws.rs.core.Context;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -116,15 +118,29 @@ public class ProyectoMapReduce {
 
     }
 
-    public static void writeFileToHDFS(String localFileName, String hdfsFilePath) throws IOException, Exception {
+    public static void writeFileToHDFS(String hadoopRoute, String localRoute) throws IOException {
         //Setting up the details of the configuration
         Configuration configuration = new Configuration();
-        FileSystem fileSystem = FileSystem.get(new URI("hdfs://192.168.10.1:9000"), configuration, "a_83048");
+        FileSystem fileSystem = null;
+        try {
+            try {
+                fileSystem = FileSystem.get(new URI("hdfs://192.168.10.1:9000"), configuration, "a_83048");
+            } catch (InterruptedException ex) {
+                System.err.println(ex);
+                ex.printStackTrace();
+            }
+        } catch (URISyntaxException ex) {
+            System.err.println(ex);
+                ex.printStackTrace();
+        }
         //Create a path
-        Path hdfsWritePath = new Path(hdfsFilePath + localFileName);
+        Path hdfsWritePath = new Path(hadoopRoute);
         FSDataOutputStream fsDataOutputStream = fileSystem.create(hdfsWritePath, true);
-        BufferedReader br = new BufferedReader(new FileReader(hdfsFilePath + localFileName));
-        BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(fsDataOutputStream, StandardCharsets.UTF_8));
+        
+        BufferedReader br = new BufferedReader(
+                new FileReader(localRoute));
+        BufferedWriter bufferedWriter = new BufferedWriter(
+                new OutputStreamWriter(fsDataOutputStream, StandardCharsets.UTF_8));
         String linea;
         while ((linea = br.readLine()) != null) {
             bufferedWriter.write(linea);
@@ -135,7 +151,7 @@ public class ProyectoMapReduce {
         fileSystem.close();
     }
 
-    public static void readFileFromHDFS(String route, String fileName) throws IOException {
+    public static void readFileFromHDFS(String hadoopRoute) throws IOException {
         Configuration configuration = new Configuration();
         FileSystem fileSystem = null;
         try {
@@ -150,7 +166,7 @@ public class ProyectoMapReduce {
             ex.printStackTrace(System.err);
         }
 
-        FSDataInputStream fsDataInputStream = fileSystem.open(new Path(route + fileName));
+        FSDataInputStream fsDataInputStream = fileSystem.open(new Path(hadoopRoute));
         BufferedReader br = new BufferedReader(new InputStreamReader(fsDataInputStream));
         String linea;
         int contador = 1;
@@ -163,7 +179,10 @@ public class ProyectoMapReduce {
     }
 
     public static void main(String[] args) {
+        
         try {
+            writeFileToHDFS( "/PCD2024/a_83048/movies/movies_hadoop.csv","./resources/MOVIES.csv");
+            readFileFromHDFS("/PCD2024/a_83048/movies/movies_hadoop.csv");
             UserGroupInformation ugi
                     = UserGroupInformation.createRemoteUser("a_83048");
             ugi.doAs(new PrivilegedExceptionAction<Void>() {
@@ -187,7 +206,7 @@ public class ProyectoMapReduce {
 
                     boolean finalizado = job.waitForCompletion(true);
                     System.out.println("Finalizado: " + finalizado);
-                    readFileFromHDFS("/PCD2024/a_83048/movies_particionadoHadoop/", "part-r-00000");
+                    readFileFromHDFS("/PCD2024/a_83048/movies_particionadoHadoop/part-r-00000");
                     //readFileFromHDFS("/PCD2024/a_83048/movies_particionadoHadoop/", "part-r-00001");
                     //readFileFromHDFS("/PCD2024/a_83048/movies_particionadoHadoop/", "part-r-00002");
                     return null;
