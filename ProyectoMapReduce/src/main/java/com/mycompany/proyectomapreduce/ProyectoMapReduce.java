@@ -64,25 +64,17 @@ public class ProyectoMapReduce {
     private static class ReducerClassPelicula extends Reducer<Text, Text, Text, LongWritable> {
 
         private long media = 0;
-        private long maximo = Long.MAX_VALUE;
-        private long minimo = Long.MIN_VALUE;
 
         @Override
         protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
             long suma = 0;
             int filas = 0;
 
-          
+            
             for (Text valor : values) {
                 String[] str = valor.toString().split(",", -1);
 
                 try {
-                    if(maximo <= Long.parseLong(str[2])){
-                        maximo = Long.parseLong(str[2]);
-                    }
-                    if(minimo >= Long.parseLong(str[2])){
-                        minimo = Long.parseLong(str[2]);
-                    }
                     suma += Long.parseLong(str[2]);                   
                     filas += 1;
                 } catch (NumberFormatException e) {
@@ -96,8 +88,6 @@ public class ProyectoMapReduce {
             if (filas > 0) {
                 media = suma / filas;
                 context.write(key, new LongWritable(media));
-                context.write(key, new LongWritable(maximo));
-                context.write(key, new LongWritable(minimo));
             }           
         }
 
@@ -205,8 +195,7 @@ public class ProyectoMapReduce {
                     job.setJarByClass(ProyectoMapReduce.class);
                     job.setMapperClass(MapperClassPelicula.class);
                     job.setReducerClass(ReducerClassPelicula.class);
-                    //job.setPartitionerClass(PartitionerClassPelicula.class);
-                    //job.setPartitionerClass(PartitionerClassPelicula2.class);
+                    job.setPartitionerClass(PartitionerClassPelicula.class);
                     //job.setNumReduceTasks(3);
                     job.setOutputKeyClass(Text.class);
                     job.setOutputValueClass(Text.class);
