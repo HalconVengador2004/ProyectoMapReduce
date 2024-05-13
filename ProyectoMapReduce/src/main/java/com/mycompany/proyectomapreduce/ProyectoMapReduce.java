@@ -62,16 +62,26 @@ public class ProyectoMapReduce {
     private static class ReducerClassPelicula extends Reducer<Text, Text, Text, LongWritable> {
 
         private long media = 0;
+        private long maximo = Long.MAX_VALUE;
+        private long minimo = Long.MIN_VALUE;
 
         @Override
         protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
             long suma = 0;
             int filas = 0;
+
+          
             for (Text valor : values) {
                 String[] str = valor.toString().split(",", -1);
 
                 try {
-                    suma += Long.parseLong(str[2]);
+                    if(maximo <= Long.parseLong(str[2])){
+                        maximo = Long.parseLong(str[2]);
+                    }
+                    if(minimo >= Long.parseLong(str[2])){
+                        minimo = Long.parseLong(str[2]);
+                    }
+                    suma += Long.parseLong(str[2]);                   
                     filas += 1;
                 } catch (NumberFormatException e) {
                     System.err.println("Capturada NumberFortmatException " + e);
@@ -84,6 +94,8 @@ public class ProyectoMapReduce {
             if (filas > 0) {
                 media = suma / filas;
                 context.write(key, new LongWritable(media));
+                context.write(key, new LongWritable(maximo));
+                context.write(key, new LongWritable(minimo));
             }           
         }
 
@@ -95,17 +107,20 @@ public class ProyectoMapReduce {
         public int getPartition(Text key, Text value, int i) { 
 
             String[] str = value.toString().split(",", -1);
-            if (str.length > 15) {
-                String diaSemana = str[15];
-                if (("Monday".equals(diaSemana) || "Wednesday".equals(diaSemana) || "Tuesday".equals(diaSemana)) && !("day_of_week".equals(diaSemana))) {
+            if (str.length > 18) {
+                String anioLanzamiento = str[18];
+                int anio = Integer.parseInt(anioLanzamiento);
+                if(anio < 1990){
                     return 0;
-                } else if ("Thursday".equals(diaSemana) || "Friday".equals(diaSemana)) {
+                }else if(anio >=1990 && anio < 1995){
                     return 1;
-                } else {
+                }else if(anio >= 1995 && anio < 2000){
                     return 2;
+                }else{
+                    return 3;
                 }
             } else {
-                return 3; //La fila tiene menos campos de los esperados
+                return 4; //La fila tiene menos campos de los esperados
             }
 
         }
@@ -172,6 +187,7 @@ public class ProyectoMapReduce {
                     job.setMapperClass(MapperClassPelicula.class);
                     job.setReducerClass(ReducerClassPelicula.class);
                     //job.setPartitionerClass(PartitionerClassPelicula.class);
+                    //job.setPartitionerClass(PartitionerClassPelicula2.class);
                     //job.setNumReduceTasks(3);
                     job.setOutputKeyClass(Text.class);
                     job.setOutputValueClass(Text.class);
