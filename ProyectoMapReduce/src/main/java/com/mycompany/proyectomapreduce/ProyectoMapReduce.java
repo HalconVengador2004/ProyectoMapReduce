@@ -165,7 +165,8 @@ public class ProyectoMapReduce {
             try {
                 fileSystem = FileSystem.get(new URI("hdfs://192.168.10.1:9000"), configuration, "a_83048");
             } catch (InterruptedException ex) {
-                System.err.println(ex);
+                System.err.println("Capturada Excepcion " + ex);
+                System.err.println("Mensaje: " + ex.getMessage());
                 ex.printStackTrace(System.err);
             }
         } catch (URISyntaxException ex) {
