@@ -15,21 +15,28 @@ public class MapReduce2 {
     public static class EmployeeMinMaxCountMapper extends Mapper<Object, Text, Text, CustomTuple> {
 
         private CustomTuple outTuple = new CustomTuple();
-        private Text departmentName = new Text();
+        private Text idioma = new Text();
 
-        @Override
-        public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+        public void map(Object key, Text value, Reducer.Context context) throws IOException, InterruptedException {
             String data = value.toString();
-            String[] field = data.split(",", -1);
-            String idioma;
-            if (field != null) {
-                idioma = field[3];
+            String[] field = data.split("\t", -1);
+            System.out.println(field.length);
+            if (field != null && !"original_language".equals(field[3]) && field.length==23) {
+                System.out.println("1");
+                idioma.set(field[3]);
+                System.out.println("2");
+                System.out.println(field[8]);
                 outTuple.setRevenueMax(Double.parseDouble(field[8]));
+                System.out.println("3");
                 outTuple.setRevenueMin(Double.parseDouble(field[8]));
+                System.out.println("4");
                 outTuple.setVoteMax(Double.parseDouble(field[12]));
+                System.out.println("5");
                 outTuple.setVoteMin(Double.parseDouble(field[12]));
+                System.out.println("6");
                 outTuple.setYear(Integer.parseInt(field[18]));
-                context.write(departmentName, outTuple);
+                System.out.println("7");
+                context.write(idioma, outTuple);
             }
         }
     }
@@ -38,7 +45,7 @@ public class MapReduce2 {
 
         private CustomTuple result = new CustomTuple();
 
-        public void reduce(Text key, Iterable<CustomTuple> values, Context context) throws IOException, InterruptedException {
+        public void reduce(Text key, Iterable<CustomTuple> values, Reducer.Context context) throws IOException, InterruptedException {
 
             result.setRevenueMax(0);
             result.setRevenueMin(100000);
@@ -69,21 +76,21 @@ public class MapReduce2 {
     }
 
     public static void main(String[] args) throws Exception {
-        UserGroupInformation ugi
-                = UserGroupInformation.createRemoteUser("a_830XX");
+        ProyectoMapReduce.writeFileToHDFS("/PCD2024/a_83045/ProyectoArchivo", "./resources/convert.tsv");
+        UserGroupInformation ugi= UserGroupInformation.createRemoteUser("a_83045");
         ugi.doAs(new PrivilegedExceptionAction<Void>() {
             public Void run() throws Exception {
                 Configuration conf = new Configuration();
                 conf.set("fs.defaultFS", "hdfs://192.168.10.1:9000");
-                Job job = Job.getInstance(conf, "max min count");
+                Job job = Job.getInstance(conf, "MpaReduce1");
                 job.setJarByClass(MapReduce2.class);
                 job.setMapperClass(EmployeeMinMaxCountMapper.class);
                 job.setReducerClass(EmployeeMinMaxCountReducer.class);
                 job.setOutputKeyClass(Text.class);
                 job.setOutputValueClass(CustomTuple.class);
 
-                FileInputFormat.addInputPath(job,new Path("/PCD2024/a_83048/prueba/"));
-                FileOutputFormat.setOutputPath(job,new Path("/PCD2024/a_83048/mapreduce_prueba"));
+                FileInputFormat.addInputPath(job,new Path("/PCD2024/a_83045/ProyectoArchivo"));
+                FileOutputFormat.setOutputPath(job,new Path("/PCD2024/a_83045/ProyectoSalida"));
 
                 boolean finalizado = job.waitForCompletion(true);
                 System.out.println("Finalizado: " + finalizado);
