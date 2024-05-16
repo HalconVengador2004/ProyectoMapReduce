@@ -55,14 +55,14 @@ public class ProyectoMapReduce {
                     }
                 }
             } catch (IOException | InterruptedException ex) {
-                System.err.println(ex);
+                System.err.println("Capturada Excepcion  " + ex);
+                System.err.println("Mensaje: " + ex.getMessage());
                 ex.printStackTrace(System.err);
             }
         }
     }
 
     private static class ReducerClassPelicula extends Reducer<Text, Text, Text, LongWritable> {
-
         private long media = 0;
 
         @Override
@@ -96,25 +96,31 @@ public class ProyectoMapReduce {
     private static class PartitionerClassPelicula extends Partitioner<Text, Text> { //PorHacer: Tenemos que elegir otro campo por el cual particionar distinto de dia de la semana
 
         @Override
-        public int getPartition(Text key, Text value, int i) { 
+        public int getPartition(Text key, Text value, int numReduceTasks) { 
 
             String[] str = value.toString().split(",", -1);
-            if (str.length > 18) {
+            if(numReduceTasks == 0){
+                return 0;
+            }
+            else {
                 String anioLanzamiento = str[18];
                 int anio = Integer.parseInt(anioLanzamiento);
-                if(anio < 1990){
-                    return 0;
-                }else if(anio >=1990 && anio < 1995){
+                if(anio < 1950){
                     return 1;
-                }else if(anio >= 1995 && anio < 2000){
+                }else if(anio >=1950 && anio < 1965){
                     return 2;
-                }else{
+                }else if(anio >= 1965 && anio < 1975){
                     return 3;
+                }else if(anio >= 1975 && anio < 1990){
+                    return 4;
+                }else if(anio >= 1990 && anio < 2000){
+                    return 5;
+                }else{
+                    return 6;
                 }
-            } else {
-                return 4; //La fila tiene menos campos de los esperados
-            }
-
+                
+            } 
+            
         }
 
     }
@@ -128,11 +134,11 @@ public class ProyectoMapReduce {
                 fileSystem = FileSystem.get(new URI("hdfs://192.168.10.1:9000"), configuration, "a_83048");
             } catch (InterruptedException ex) {
                 System.err.println(ex);
-                ex.printStackTrace();
+                ex.printStackTrace(System.err);
             }
         } catch (URISyntaxException ex) {
             System.err.println(ex);
-                ex.printStackTrace();
+                ex.printStackTrace(System.err);
         }
         //Create a path
         Path hdfsWritePath = new Path(hadoopRoute);
@@ -163,7 +169,8 @@ public class ProyectoMapReduce {
                 ex.printStackTrace(System.err);
             }
         } catch (URISyntaxException ex) {
-            System.err.println(ex);
+            System.err.println("Capturada excepcion" + ex);
+            System.err.println("Mensaje: " + ex.getMessage());
             ex.printStackTrace(System.err);
         }
 
@@ -213,8 +220,9 @@ public class ProyectoMapReduce {
                     return null;
                 }
             });
-        } catch (Exception ex) {
-            System.err.println(ex);
+        } catch (IOException | InterruptedException ex) {
+            System.err.println("Capturada Excepcion " + ex);
+            System.err.println("Mensaje: " + ex.getMessage());
             ex.printStackTrace(System.err);
         }
 
