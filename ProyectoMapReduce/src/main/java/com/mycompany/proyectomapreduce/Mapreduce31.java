@@ -23,15 +23,26 @@ public class Mapreduce31 {
     //Map class
 
     public static class MapClass extends
-            Mapper<LongWritable, Text, Text, Text> {
-
+            Mapper<LongWritable, Text, Text, CustomTuple> {
+        private CustomTuple outTuple = new CustomTuple();
         @Override
         public void map(LongWritable key, Text value, Context context) {
             try {
                 String data = value.toString();
                 String[] field = data.split("\t", -1);
                 if (field != null && !"original_language".equals(field[3]) && field.length == 23) {
-                    context.write(new Text(field[3]), new Text(value));
+                    outTuple.setRevenueMax(Double.parseDouble(field[8]));
+
+                    outTuple.setRevenueMin(Double.parseDouble(field[8]));
+
+                    outTuple.setVoteMax(Double.parseDouble(field[12]));
+
+                    outTuple.setVoteMin(Double.parseDouble(field[12]));
+
+                    outTuple.setYear(Integer.parseInt(field[18]));
+                    
+                    context.write(new Text(field[3]), outTuple);
+                    System.out.println(outTuple);
                 }
             } catch (Exception e) {
                 System.err.println("Exception: " + e);
@@ -43,49 +54,68 @@ public class Mapreduce31 {
 //Reducer class
 
     public static class ReduceClass extends
-            Reducer<Text, Text, Text, DoubleWritable> {
+            Reducer<Text, CustomTuple, Text, CustomTuple> {
 
-        public double max = -1;
+        private double year = 0;
+        private int count = 0;
+        private CustomTuple tuple = new CustomTuple();
 
         @Override
-        public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-            max = -1;
-            for (Text val : values) {
+        public void reduce(Text key, Iterable<CustomTuple> values, Context context) throws IOException, InterruptedException {
+
+            year = 0;
+            count = 0;
+            for (CustomTuple val : values) {
+                System.out.println(val);
                 try {
-                    String[] str = val.toString().split("\t", -1);
-                    double vote = Double.parseDouble(str[12]);
-                    if (vote > max) {
-                        max = vote;
+                    
+                    if (tuple.getVoteMax() < val.getVoteMax()) {
+                        tuple.setVoteMax(val.getVoteMax());
                     }
+                    if (tuple.getVoteMin() > val.getVoteMin()) {
+                        tuple.setVoteMin(val.getVoteMin());
+                    }
+                    if (tuple.getRevenueMax() < val.getRevenueMax()){
+                        tuple.setRevenueMax(val.getRevenueMax());
+                    }
+                    if (tuple.getRevenueMin() > val.getRevenueMin()){
+                        tuple.setRevenueMin(val.getRevenueMin());
+                    }
+                    year += val.getYear();
+                    count++;
+                    
                 } catch (NumberFormatException e) {
                     Logger.getLogger(ReduceClass.class.getName()).log(Level.SEVERE, "Number format exception: " + e.getMessage(), e);
                 }
             }
-            context.write(key, new DoubleWritable(max));
+            tuple.setYear(year/count);
+            context.write(key, tuple);
         }
 
     }
 
     //Partitioner class
-    private static class PartitionerClassPelicula extends Partitioner<Text, Text> { //PorHacer: Tenemos que elegir otro campo por el cual particionar distinto de dia de la semana
+    private static class PartitionerClassPelicula extends Partitioner<Text, CustomTuple> {
+
+
 
         @Override
-        public int getPartition(Text key, Text value, int i) {
+        public int getPartition(Text key, CustomTuple value, int i) {
 
-            String[] str = value.toString().split("\t", -1);
-
-            String anioLanzamiento = str[18];
-            int anio = Integer.parseInt(anioLanzamiento);
-            if (anio < 1990) {
-                return 0;
-            } else if (anio >= 1990 && anio < 1995) {
-                return 1;
-            } else if (anio >= 1995 && anio < 2000) {
-                return 2;
-            } else {
-                return 3;
+            double anio = value.getYear();
+            if(anio < 1950){
+                return 0 % i;
+            }else if(anio >=1950 && anio < 1965){
+                return 1 % i;
+            }else if(anio >= 1965 && anio < 1975){
+                return 2 % i;
+            }else if(anio >= 1975 && anio < 1990){
+                return 3 % i;
+            }else if(anio >= 1990 && anio < 2000){
+                return 4 % i;
+            }else{
+                return 5 % i;
             }
-
         }
 
     }
@@ -101,15 +131,14 @@ public class Mapreduce31 {
                 job.setJarByClass(Mapreduce31.class);
                 job.setMapperClass(MapClass.class);
                 job.setMapOutputKeyClass(Text.class);
-                job.setMapOutputValueClass(Text.class);
-                job.setReducerClass(ReduceClass.class);
+                job.setMapOutputValueClass(CustomTuple.class);
                 job.setReducerClass(ReduceClass.class);
                 job.setPartitionerClass(PartitionerClassPelicula.class);
-                job.setNumReduceTasks(4); // Ensure there are enough reducers for partitions
+                job.setNumReduceTasks(6); // Ensure there are enough reducers for partitions
                 job.setInputFormatClass(TextInputFormat.class);
                 job.setOutputFormatClass(TextOutputFormat.class);
                 job.setOutputKeyClass(Text.class);
-                job.setOutputValueClass(DoubleWritable.class);
+                job.setOutputValueClass(CustomTuple.class);
 
                 FileInputFormat.addInputPath(job, new Path("/PCD2024/a_83048/movies"));
                 FileOutputFormat.setOutputPath(job, new Path("/PCD2024/a_83048/salidaHadoop"));
@@ -128,14 +157,18 @@ public class Mapreduce31 {
 
                 boolean finalizado = job.waitForCompletion(true);
                 System.out.println("Finalizado: " + finalizado);
-                System.out.println("anio < 1990");
+                System.out.println("anio < 1950");
                 readFileFromHDFS("/PCD2024/a_83048/salidaHadoop/part-r-00000");
-                System.out.println("anio >= 1990 && anio < 1995");
+                System.out.println("anio >=1950 && anio < 1965");
                 readFileFromHDFS("/PCD2024/a_83048/salidaHadoop/part-r-00001");
-                System.out.println("anio >= 1995 && anio < 2000");
+                System.out.println("anio >= 1965 && anio < 1975");
                 readFileFromHDFS("/PCD2024/a_83048/salidaHadoop/part-r-00002");
-                System.out.println("anio >= 2000");
+                System.out.println("anio >= 1975 && anio < 1990");
                 readFileFromHDFS("/PCD2024/a_83048/salidaHadoop/part-r-00003");
+                System.out.println("anio >= 1990 && anio < 2000");
+                readFileFromHDFS("/PCD2024/a_83048/salidaHadoop/part-r-00004");
+                System.out.println("anio >= 2000");
+                readFileFromHDFS("/PCD2024/a_83048/salidaHadoop/part-r-00005");
                 return null;
             }
         });

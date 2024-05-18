@@ -6,17 +6,25 @@ import java.io.IOException;
 import org.apache.hadoop.io.Writable;
 
 public class CustomTuple implements Writable{
-    private int year;
+    private double year;
     private double voteMin;
     private double voteMax;
     private double revenueMax;
     private double revenueMin;
+    
+    public CustomTuple() {
+        this.year = 0.0;
+        this.voteMin = Double.MAX_VALUE;
+        this.voteMax = Double.MIN_VALUE;
+        this.revenueMin = Double.MAX_VALUE;
+        this.revenueMax = Double.MIN_VALUE;
+    }
 
-    public int getYear() {
+    public double getYear() {
         return year;
     }
 
-    public void setYear(int year) {
+    public void setYear(double year) {
         this.year = year;
     }
 
@@ -59,7 +67,7 @@ public class CustomTuple implements Writable{
 
     @Override
     public void write(DataOutput out) throws IOException {
-        out.writeInt(year);
+        out.writeDouble(year);
         out.writeDouble(voteMin);
         out.writeDouble(voteMax);
         out.writeDouble(revenueMin);
@@ -68,7 +76,7 @@ public class CustomTuple implements Writable{
 
     @Override
     public void readFields(DataInput in) throws IOException {
-        year=in.readInt();
+        year=in.readDouble();
         voteMin=in.readDouble();
         voteMax=in.readDouble();
         revenueMin=in.readDouble();
