@@ -98,32 +98,29 @@ public class ProyectoMapReduce {
         @Override
         public int getPartition(Text key, Text value, int numReduceTasks) { 
 
-            String[] str = value.toString().split(",", -1);
-            if(numReduceTasks == 0){
-                return 0;
-            }
-            else {
-                String anioLanzamiento = str[18];
-                int anio = Integer.parseInt(anioLanzamiento);
-                if(anio < 1950){
-                    return 1;
-                }else if(anio >=1950 && anio < 1965){
-                    return 2;
-                }else if(anio >= 1965 && anio < 1975){
-                    return 3;
-                }else if(anio >= 1975 && anio < 1990){
-                    return 4;
-                }else if(anio >= 1990 && anio < 2000){
-                    return 5;
-                }else{
-                    return 6;
-                }
-                
-            } 
-            
-        }
+            String[] str = value.toString().split("\t", -1);
 
+            String anioLanzamiento = str[18];
+            int anio = Integer.parseInt(anioLanzamiento);
+            if(anio < 1950){
+                return 1;
+            }else if(anio >=1950 && anio < 1965){
+                return 2;
+            }else if(anio >= 1965 && anio < 1975){
+                return 3;
+            }else if(anio >= 1975 && anio < 1990){
+                return 4;
+            }else if(anio >= 1990 && anio < 2000){
+                return 5;
+            }else{
+                return 6;
+            }
+                
+        } 
+            
     }
+
+    
 
     public static void writeFileToHDFS(String hadoopRoute, String localRoute) throws IOException {
         //Setting up the details of the configuration
