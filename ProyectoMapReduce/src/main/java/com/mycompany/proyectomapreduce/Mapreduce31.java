@@ -1,5 +1,7 @@
 package com.mycompany.proyectomapreduce;
 
+import static com.mycompany.proyectomapreduce.MapReduce3.readFileFromHDFS;
+import static com.mycompany.proyectomapreduce.MapReduce3.writeFileToHDFS;
 import java.io.*;
 import java.security.PrivilegedExceptionAction;
 import java.text.NumberFormat;
@@ -39,6 +41,7 @@ public class Mapreduce31 {
         }
     }
 //Reducer class
+
     public static class ReduceClass extends
             Reducer<Text, Text, Text, DoubleWritable> {
 
@@ -70,20 +73,17 @@ public class Mapreduce31 {
         public int getPartition(Text key, Text value, int i) {
 
             String[] str = value.toString().split("\t", -1);
-            if (str.length > 18) {
-                String anioLanzamiento = str[18];
-                int anio = Integer.parseInt(anioLanzamiento);
-                if (anio < 1990) {
-                    return 0;
-                } else if (anio >= 1990 && anio < 1995) {
-                    return 1;
-                } else if (anio >= 1995 && anio < 2000) {
-                    return 2;
-                } else {
-                    return 3;
-                }
+
+            String anioLanzamiento = str[18];
+            int anio = Integer.parseInt(anioLanzamiento);
+            if (anio < 1990) {
+                return 0;
+            } else if (anio >= 1990 && anio < 1995) {
+                return 1;
+            } else if (anio >= 1995 && anio < 2000) {
+                return 2;
             } else {
-                return 4; //La fila tiene menos campos de los esperados
+                return 3;
             }
 
         }
@@ -91,7 +91,7 @@ public class Mapreduce31 {
     }
 
     public static void main(String[] args) throws Exception {
-        UserGroupInformation ugi = UserGroupInformation.createRemoteUser("a_83045");
+        UserGroupInformation ugi = UserGroupInformation.createRemoteUser("a_83048");
         ugi.doAs(new PrivilegedExceptionAction<Void>() {
             @Override
             public Void run() throws Exception {
@@ -105,17 +105,37 @@ public class Mapreduce31 {
                 job.setReducerClass(ReduceClass.class);
                 job.setReducerClass(ReduceClass.class);
                 job.setPartitionerClass(PartitionerClassPelicula.class);
-                job.setNumReduceTasks(5); // Ensure there are enough reducers for partitions
+                job.setNumReduceTasks(4); // Ensure there are enough reducers for partitions
                 job.setInputFormatClass(TextInputFormat.class);
                 job.setOutputFormatClass(TextOutputFormat.class);
                 job.setOutputKeyClass(Text.class);
                 job.setOutputValueClass(DoubleWritable.class);
 
-                FileInputFormat.addInputPath(job, new Path("/PCD2024/a_83045/ProyectoArchivo"));
-                FileOutputFormat.setOutputPath(job, new Path("/PCD2024/a_83045/8"));
+                FileInputFormat.addInputPath(job, new Path("/PCD2024/a_83048/movies"));
+                FileOutputFormat.setOutputPath(job, new Path("/PCD2024/a_83048/salidaHadoop"));
+                FileSystem hdfs = FileOutputFormat.getOutputPath(job).getFileSystem(conf);
+                String hadoopRoute = "/PCD2024/a_83048/movies/movies.tsv";
+                String localRoute = "./resources/convert.tsv";
+                if (!hdfs.exists(new Path(hadoopRoute))) { //Comprobamos si ya ha sido subido antes de volver a hacerlo para que no de errores
+                    System.out.println("Se esta escribiendo en Hadoop...");
+                    writeFileToHDFS(hadoopRoute, localRoute);
+                    readFileFromHDFS(hadoopRoute); //Comprobamos que se ha subido leyendolo
+                }
+                if (hdfs.exists(FileOutputFormat.getOutputPath(job))) { //Si existe el directorio de salida lo boramos para que no de errores
+                    System.out.println("Borrando directorio...");
+                    hdfs.delete(FileOutputFormat.getOutputPath(job), true);
+                }
 
                 boolean finalizado = job.waitForCompletion(true);
                 System.out.println("Finalizado: " + finalizado);
+                System.out.println("anio < 1990");
+                readFileFromHDFS("/PCD2024/a_83048/salidaHadoop/part-r-00000");
+                System.out.println("anio >= 1990 && anio < 1995");
+                readFileFromHDFS("/PCD2024/a_83048/salidaHadoop/part-r-00001");
+                System.out.println("anio >= 1995 && anio < 2000");
+                readFileFromHDFS("/PCD2024/a_83048/salidaHadoop/part-r-00002");
+                System.out.println("anio >= 2000");
+                readFileFromHDFS("/PCD2024/a_83048/salidaHadoop/part-r-00003");
                 return null;
             }
         });
