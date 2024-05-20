@@ -1,4 +1,4 @@
-package com.mycompany.proyectomapreduce;
+    package com.mycompany.proyectomapreduce;
 
 import java.io.DataInput;
 import java.io.DataOutput;
