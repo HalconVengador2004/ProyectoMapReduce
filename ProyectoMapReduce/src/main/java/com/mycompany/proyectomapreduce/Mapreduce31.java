@@ -144,7 +144,7 @@ public class Mapreduce31 {
                 FileOutputFormat.setOutputPath(job, new Path("/PCD2024/a_83048/salidaHadoop"));
                 FileSystem hdfs = FileOutputFormat.getOutputPath(job).getFileSystem(conf);
                 String hadoopRoute = "/PCD2024/a_83048/movies/movies.tsv";
-                String localRoute = "./resources/convert.tsv";
+                String localRoute = "./resources/output.tsv";
                 if (!hdfs.exists(new Path(hadoopRoute))) { //Comprobamos si ya ha sido subido antes de volver a hacerlo para que no de errores
                     System.out.println("Se esta escribiendo en Hadoop...");
                     writeFileToHDFS(hadoopRoute, localRoute);

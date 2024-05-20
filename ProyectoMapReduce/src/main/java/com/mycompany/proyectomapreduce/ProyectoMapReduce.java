@@ -187,8 +187,8 @@ public class ProyectoMapReduce {
     public static void main(String[] args) {
         
         try {
-            writeFileToHDFS( "/PCD2024/a_83048/movies/movies_hadoop.csv","./resources/MOVIES.csv");
-            readFileFromHDFS("/PCD2024/a_83048/movies/movies_hadoop.csv");
+            writeFileToHDFS( "/PCD2024/a_83048/movies/movies_hadoop.csv","./resources/output.tsv");
+            readFileFromHDFS("/PCD2024/a_83048/movies/movies_hadoop.tsv");
             UserGroupInformation ugi
                     = UserGroupInformation.createRemoteUser("a_83048");
             ugi.doAs(new PrivilegedExceptionAction<Void>() {
