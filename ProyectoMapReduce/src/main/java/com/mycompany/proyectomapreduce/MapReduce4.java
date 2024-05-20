@@ -166,7 +166,7 @@ public class MapReduce4 {
                 Configuration conf = new Configuration();
                 conf.set("fs.defaultFS", "hdfs://192.168.10.1:9000");
                 Job job = Job.getInstance(conf, "MapReduce4");
-                job.setJarByClass(Mapreduce4.class);
+                job.setJarByClass(MapReduce4.class);
                 job.setMapperClass(MapClass.class);
                 job.setMapOutputKeyClass(Text.class);
                 job.setMapOutputValueClass(CustomTuple1.class);
