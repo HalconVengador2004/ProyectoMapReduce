@@ -124,7 +124,7 @@ public class Mapreduce1 {
             public Void run() throws Exception {
                 Configuration conf = new Configuration();
                 conf.set("fs.defaultFS", "hdfs://192.168.10.1:9000");
-                Job job = Job.getInstance(conf, "MapReduce3");
+                Job job = Job.getInstance(conf, "MapReduce1");
                 job.setJarByClass(Mapreduce1.class);
                 job.setMapperClass(MapClass.class);
                 job.setMapOutputKeyClass(Text.class);
