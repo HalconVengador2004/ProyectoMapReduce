@@ -1,12 +1,9 @@
 package com.mycompany.proyectomapreduce;
 
-import static com.mycompany.proyectomapreduce.MapReduce3.readFileFromHDFS;
-import static com.mycompany.proyectomapreduce.MapReduce3.writeFileToHDFS;
+import static com.mycompany.proyectomapreduce.MapReduce2.readFileFromHDFS;
+import static com.mycompany.proyectomapreduce.MapReduce2.writeFileToHDFS;
 import java.io.*;
 import java.security.PrivilegedExceptionAction;
-import java.text.NumberFormat;
-import java.text.ParseException;
-import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.hadoop.io.*;
@@ -16,33 +13,35 @@ import org.apache.hadoop.fs.*;
 import org.apache.hadoop.mapreduce.lib.input.*;
 import org.apache.hadoop.mapreduce.lib.output.*;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.security.authentication.client.AuthenticationException;
-import static org.apache.hadoop.security.authentication.server.AuthenticationToken.parse;
 
-public class Mapreduce31 {
+public class Mapreduce1 {
     //Map class
 
     public static class MapClass extends
             Mapper<LongWritable, Text, Text, CustomTuple> {
+
         private CustomTuple outTuple = new CustomTuple();
+
         @Override
         public void map(LongWritable key, Text value, Context context) {
             try {
                 String data = value.toString();
                 String[] field = data.split("\t", -1);
-                if (field != null && !"original_language".equals(field[3]) && field.length == 23) {
-                    outTuple.setRevenueMax(Double.parseDouble(field[8]));
+                if (field != null && field.length == 23) {
+                    if (!"original_language".equals(field[3])) {
+                        outTuple.setRevenueMax(Double.parseDouble(field[8]));
 
-                    outTuple.setRevenueMin(Double.parseDouble(field[8]));
+                        outTuple.setRevenueMin(Double.parseDouble(field[8]));
 
-                    outTuple.setVoteMax(Double.parseDouble(field[12]));
+                        outTuple.setVoteMax(Double.parseDouble(field[12]));
 
-                    outTuple.setVoteMin(Double.parseDouble(field[12]));
+                        outTuple.setVoteMin(Double.parseDouble(field[12]));
 
-                    outTuple.setYear(Integer.parseInt(field[18]));
-                    
-                    context.write(new Text(field[3]), outTuple);
-                    System.out.println(outTuple);
+                        outTuple.setYear(Integer.parseInt(field[18]));
+
+                        context.write(new Text(field[3]), outTuple);
+                        System.out.println(outTuple);
+                    }
                 }
             } catch (Exception e) {
                 System.err.println("Exception: " + e);
@@ -68,27 +67,27 @@ public class Mapreduce31 {
             for (CustomTuple val : values) {
                 System.out.println(val);
                 try {
-                    
+
                     if (tuple.getVoteMax() < val.getVoteMax()) {
                         tuple.setVoteMax(val.getVoteMax());
                     }
                     if (tuple.getVoteMin() > val.getVoteMin()) {
                         tuple.setVoteMin(val.getVoteMin());
                     }
-                    if (tuple.getRevenueMax() < val.getRevenueMax()){
+                    if (tuple.getRevenueMax() < val.getRevenueMax()) {
                         tuple.setRevenueMax(val.getRevenueMax());
                     }
-                    if (tuple.getRevenueMin() > val.getRevenueMin()){
+                    if (tuple.getRevenueMin() > val.getRevenueMin()) {
                         tuple.setRevenueMin(val.getRevenueMin());
                     }
                     year += val.getYear();
                     count++;
-                    
+
                 } catch (NumberFormatException e) {
                     Logger.getLogger(ReduceClass.class.getName()).log(Level.SEVERE, "Number format exception: " + e.getMessage(), e);
                 }
             }
-            tuple.setYear(year/count);
+            tuple.setYear(year / count);
             context.write(key, tuple);
         }
 
@@ -97,23 +96,21 @@ public class Mapreduce31 {
     //Partitioner class
     private static class PartitionerClassPelicula extends Partitioner<Text, CustomTuple> {
 
-
-
         @Override
         public int getPartition(Text key, CustomTuple value, int i) {
 
             double anio = value.getYear();
-            if(anio < 1950){
+            if (anio < 1950) {
                 return 0 % i;
-            }else if(anio >=1950 && anio < 1965){
+            } else if (anio >= 1950 && anio < 1965) {
                 return 1 % i;
-            }else if(anio >= 1965 && anio < 1975){
+            } else if (anio >= 1965 && anio < 1975) {
                 return 2 % i;
-            }else if(anio >= 1975 && anio < 1990){
+            } else if (anio >= 1975 && anio < 1990) {
                 return 3 % i;
-            }else if(anio >= 1990 && anio < 2000){
+            } else if (anio >= 1990 && anio < 2000) {
                 return 4 % i;
-            }else{
+            } else {
                 return 5 % i;
             }
         }
@@ -128,7 +125,7 @@ public class Mapreduce31 {
                 Configuration conf = new Configuration();
                 conf.set("fs.defaultFS", "hdfs://192.168.10.1:9000");
                 Job job = Job.getInstance(conf, "MapReduce3");
-                job.setJarByClass(Mapreduce31.class);
+                job.setJarByClass(Mapreduce1.class);
                 job.setMapperClass(MapClass.class);
                 job.setMapOutputKeyClass(Text.class);
                 job.setMapOutputValueClass(CustomTuple.class);

@@ -14,7 +14,7 @@ import org.apache.hadoop.mapreduce.lib.output.*;
 import org.apache.hadoop.security.UserGroupInformation;
 import java.util.ArrayList;
 
-public class MapReduce4 {
+public class MapReduce2 {
 
     public static void writeFileToHDFS(String hadoopRoute, String localRoute) throws IOException {
         //Setting up the details of the configuration
@@ -159,14 +159,14 @@ public class MapReduce4 {
     }
 
     public static void main(String[] args) throws Exception {
-        UserGroupInformation ugi = UserGroupInformation.createRemoteUser("a_83045");
+        UserGroupInformation ugi = UserGroupInformation.createRemoteUser("a_83048");
         ugi.doAs(new PrivilegedExceptionAction<Void>() {
             @Override
             public Void run() throws Exception {
                 Configuration conf = new Configuration();
                 conf.set("fs.defaultFS", "hdfs://192.168.10.1:9000");
                 Job job = Job.getInstance(conf, "MapReduce4");
-                job.setJarByClass(MapReduce4.class);
+                job.setJarByClass(MapReduce2.class);
                 job.setMapperClass(MapClass.class);
                 job.setMapOutputKeyClass(Text.class);
                 job.setMapOutputValueClass(CustomTuple1.class);
@@ -178,10 +178,10 @@ public class MapReduce4 {
                 job.setOutputKeyClass(Text.class);
                 job.setOutputValueClass(CustomTuple1.class);
 
-                FileInputFormat.addInputPath(job, new Path("/PCD2024/a_83045/movies"));
-                FileOutputFormat.setOutputPath(job, new Path("/PCD2024/a_83045/salidaHadoop"));
+                FileInputFormat.addInputPath(job, new Path("/PCD2024/a_83048/movies"));
+                FileOutputFormat.setOutputPath(job, new Path("/PCD2024/a_83048/salidaHadoop"));
                 FileSystem hdfs = FileOutputFormat.getOutputPath(job).getFileSystem(conf);
-                String hadoopRoute = "/PCD2024/a_83045/movies/movies.tsv";
+                String hadoopRoute = "/PCD2024/a_83048/movies/movies.tsv";
                 String localRoute = "./resources/output.tsv";
                 if (!hdfs.exists(new Path(hadoopRoute))) { //Comprobamos si ya ha sido subido antes de volver a hacerlo para que no de errores
                     System.out.println("Se esta escribiendo en Hadoop...");
@@ -196,17 +196,17 @@ public class MapReduce4 {
                 boolean finalizado = job.waitForCompletion(true);
                 System.out.println("Finalizado: " + finalizado);
                 System.out.println("anio < 1950");
-                readFileFromHDFS("/PCD2024/a_83045/salidaHadoop/part-r-00000");
+                readFileFromHDFS("/PCD2024/a_83048/salidaHadoop/part-r-00000");
                 System.out.println("anio >=1950 && anio < 1965");
-                readFileFromHDFS("/PCD2024/a_83045/salidaHadoop/part-r-00001");
+                readFileFromHDFS("/PCD2024/a_83048/salidaHadoop/part-r-00001");
                 System.out.println("anio >= 1965 && anio < 1975");
-                readFileFromHDFS("/PCD2024/a_83045/salidaHadoop/part-r-00002");
+                readFileFromHDFS("/PCD2024/a_83048/salidaHadoop/part-r-00002");
                 System.out.println("anio >= 1975 && anio < 1990");
-                readFileFromHDFS("/PCD2024/a_83045/salidaHadoop/part-r-00003");
+                readFileFromHDFS("/PCD2024/a_83048/salidaHadoop/part-r-00003");
                 System.out.println("anio >= 1990 && anio < 2000");
-                readFileFromHDFS("/PCD2024/a_83045/salidaHadoop/part-r-00004");
+                readFileFromHDFS("/PCD2024/a_83048/salidaHadoop/part-r-00004");
                 System.out.println("anio >= 2000");
-                readFileFromHDFS("/PCD2024/a_83045/salidaHadoop/part-r-00005");
+                readFileFromHDFS("/PCD2024/a_83048/salidaHadoop/part-r-00005");
 
                 return null;
             }
