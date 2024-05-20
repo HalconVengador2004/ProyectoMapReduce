@@ -53,7 +53,7 @@ public class MapReduce2 {
             result.setVoteMin(10);
             result.setYear(0);
 
-            long mYear = 0;
+            double mYear = 0;
             long count=0;
             for (CustomTuple tuple : values) {
                 if (result.getRevenueMax()== 0 || (tuple.getRevenueMax()> result.getRevenueMax())) {
